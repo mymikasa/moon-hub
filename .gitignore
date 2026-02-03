@@ -37,3 +37,6 @@ go.work.sum
 .agents/
 .codex/
 .opencode/
+
+# frontend
+/frontend/.vite/
