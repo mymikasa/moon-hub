@@ -33,8 +33,7 @@ go.work.sum
 
 
 # ai
-.claude/settings.json
+.claude/
 .agents/
 .codex/
 .opencode/
-.cluade/
