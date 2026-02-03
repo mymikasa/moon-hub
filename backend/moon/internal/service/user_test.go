@@ -34,6 +34,20 @@ func (m *mockUserRepository) FindByEmail(ctx context.Context, email string) (dom
 	return domain.User{}, repository.ErrUserNotFound
 }
 
+func (m *mockUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
+	for _, u := range m.users {
+		if u.Id == id {
+			return u, nil
+		}
+	}
+	return domain.User{}, repository.ErrUserNotFound
+}
+
+func (m *mockUserRepository) Update(ctx context.Context, u domain.User) error {
+	m.users[u.Email] = u
+	return nil
+}
+
 func TestUserService_Signup(t *testing.T) {
 	tests := []struct {
 		name      string

@@ -47,6 +47,9 @@ func main() {
 
 	log.Info("路由配置完成")
 
+	jwtMiddleware := middleware.NewLoginJWTMiddlewareBuilder(jwtHdl).CheckLogin()
+	router.Use(jwtMiddleware)
+
 	router.GET("/health", func(ctx *gin.Context) {
 		log.Info("收到健康检查请求")
 		ctx.JSON(200, gin.H{"status": "ok"})

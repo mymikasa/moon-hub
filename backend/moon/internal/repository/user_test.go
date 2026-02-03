@@ -41,6 +41,24 @@ func (m *mockUserDAO) FindByEmail(ctx context.Context, email string) (dao.User, 
 	return dao.User{}, dao.ErrRecordNotFound
 }
 
+func (m *mockUserDAO) FindById(ctx context.Context, id int64) (dao.User, error) {
+	_ = m.Called(ctx, id)
+	if m.err != nil {
+		return dao.User{}, m.err
+	}
+	for _, u := range m.users {
+		if u.Id == id {
+			return u, nil
+		}
+	}
+	return dao.User{}, dao.ErrRecordNotFound
+}
+
+func (m *mockUserDAO) Update(ctx context.Context, u dao.User) error {
+	_ = m.Called(ctx, u)
+	return m.err
+}
+
 func TestGORMUserRepository_Create(t *testing.T) {
 	tests := []struct {
 		name      string

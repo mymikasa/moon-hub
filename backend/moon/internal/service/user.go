@@ -17,6 +17,8 @@ var (
 type UserService interface {
 	Signup(ctx context.Context, email, password, nickname string) error
 	Login(ctx context.Context, email, password string) (domain.User, error)
+	FindById(ctx context.Context, id int64) (domain.User, error)
+	Update(ctx context.Context, u domain.User) error
 }
 
 type userService struct {
@@ -63,4 +65,16 @@ func (s *userService) Login(ctx context.Context, email, password string) (domain
 		return domain.User{}, ErrInvalidUserOrPassword
 	}
 	return u, nil
+}
+
+func (s *userService) FindById(ctx context.Context, id int64) (domain.User, error) {
+	u, err := s.repo.FindById(ctx, id)
+	if err == repository.ErrUserNotFound {
+		return domain.User{}, ErrInvalidUserOrPassword
+	}
+	return u, err
+}
+
+func (s *userService) Update(ctx context.Context, u domain.User) error {
+	return s.repo.Update(ctx, u)
 }

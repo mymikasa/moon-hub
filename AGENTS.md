@@ -3,6 +3,16 @@
 ## 项目概述
 采用 React + TypeScript 前端和 Go + Gin 后端的全栈应用，遵循 Clean Architecture 架构。
 
+## API 接口文档
+所有后端路由的详细信息请查看 [API_ROUTES.md](./API_ROUTES.md)，包含：
+- 完整的路由列表（方法、路径、功能）
+- 请求/响应格式示例
+- 认证方式说明
+- 错误码定义
+- 前后端对应关系
+
+**重要**: 添加或修改后端路由时，必须同步更新 API_ROUTES.md 文档。
+
 ## 构建与测试命令
 
 ### 前端 (React/TypeScript/Vite)
@@ -119,3 +129,208 @@ go test -v ./internal/service -run TestUserService_Signup  # 详细输出指定�
 - 修改后始终运行 lint/typecheck：
   - 前端：`npm run lint` + `tsc -b`
   - 后端：`go fmt ./...` + `go vet ./...`
+
+## 常见问题与解决方案
+
+### CORS 与 Token 认证问题
+
+#### 问题 1：前端无法读取 JWT Token
+
+**现象：**
+- 后端登录成功，响应头中包含 `x-jwt-token`
+- 前端 `response.headers.get('x-jwt-token')` 返回 `null`
+- 导致认证失败，无法访问需要认证的 API
+
+**根本原因：**
+根据 CORS 规范，浏览器默认只允许读取以下"简单响应头"：
+- `Cache-Control`
+- `Content-Language`
+- `Content-Type`
+- `Expires`
+- `Last-Modified`
+- `Pragma`
+
+自定义响应头（如 `x-jwt-token`）必须在服务器端的 `Access-Control-Expose-Headers` 中显式声明，前端 JavaScript 才能读取。
+
+**解决方案：**
+
+1. **后端 CORS 中间件** (`backend/moon/internal/web/middleware/cors.go`)：
+```go
+ctx.Writer.Header().Set("Access-Control-Expose-Headers", "x-jwt-token, x-refresh-token")
+```
+
+2. **前端登录函数** (`frontend/src/lib/api.ts`)：
+```typescript
+export async function login(email: string, password: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/users/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email, password }),
+  })
+
+  const token = response.headers.get('x-jwt-token')
+  if (token) {
+    localStorage.setItem('access_token', token)
+  }
+
+  if (!response.ok) {
+    throw new Error('登录失败')
+  }
+}
+```
+
+**验证步骤：**
+1. 登录成功后，在浏览器控制台检查 Network 标签
+2. 查看 `/users/login` 请求的 Headers
+3. 确认 `Access-Control-Expose-Headers` 包含 `x-jwt-token`
+4. 确认响应头中包含 `x-jwt-token`
+
+---
+
+### API 响应格式问题
+
+#### 问题 2：前后端字段名大小写不匹配
+
+**现象：**
+- 后端返回：`{"code": 0, "msg": "success", "data": {...}}`
+- 前端 TypeScript 接口：`interface ApiResponse { Code?: number; Msg: string; Data?: T }`
+- 前端解析后 `data.Code` 为 `undefined`
+
+**根本原因：**
+Go 的 JSON 序列化默认使用结构体字段的小写形式，除非显式指定标签。Go 的命名习惯是首字母大写的公开字段，但 JSON 输出通常使用小写。
+
+**解决方案：**
+
+统一使用小写字段名：
+
+1. **后端** (`backend/moon/pkg/ginx/result.go`)：
+```go
+type Result struct {
+    Code int    `json:"code"`
+    Msg  string `json:"msg"`
+    Data any    `json:"data"`
+}
+```
+
+2. **前端** (`frontend/src/lib/api.ts`)：
+```typescript
+interface ApiResponse<T = unknown> {
+  code?: number
+  msg: string
+  data?: T
+}
+```
+
+**规则：**
+- 所有 API 响应使用统一的小写字段名
+- 新建接口时参考现有格式
+- 修改后端响应时同步更新前端 TypeScript 接口
+
+---
+
+### API 响应完整性问题
+
+#### 问题 3：后端返回格式不一致
+
+**现象：**
+- 某些 Handler 返回 `ginx.Result{Data: resp}`，缺少 `Msg` 字段
+- 导致前端解析时可能出现问题
+
+**解决方案：**
+
+所有 Handler 返回完整的 `ginx.Result`：
+
+```go
+ctx.JSON(http.StatusOK, ginx.Result{
+    Code: 0,
+    Msg:  "success",
+    Data: resp,
+})
+```
+
+**规则：**
+- 成功响应：`Code: 0, Msg: "success" 或具体消息, Data: 数据`
+- 错误响应：`Code: 错误码, Msg: 错误信息`
+- 保持响应格式一致性，便于前端处理
+
+---
+
+### JWT 认证流程检查清单
+
+**新增认证相关 API 时，必须检查：**
+
+#### 后端检查清单：
+- [ ] Handler 返回完整的 `ginx.Result` 格式
+- [ ] 在 CORS 中间件中暴露 `x-jwt-token` 响应头
+- [ ] JWT 中间件白名单包含新接口（如需要）
+- [ ] API_ROUTES.md 文档已更新
+
+#### 前端检查清单：
+- [ ] API 函数正确处理响应头中的 token
+- [ ] token 存储到 localStorage
+- [ ] TypeScript 接口字段名与后端一致（小写）
+- [ ] 请求头正确添加 `Authorization: Bearer <token>`
+- [ ] 401 错误有统一处理逻辑
+
+---
+
+### 调试技巧
+
+**后端调试：**
+```go
+fmt.Printf("LoginJWT: 收到登录请求，邮箱: %s\n", req.Email)
+fmt.Printf("LoginJWT: token设置成功\n")
+```
+
+**前端调试：**
+```typescript
+console.log('Token received:', token)
+console.log('getUserProfile called, token:', token ? 'exists' : 'missing')
+console.log('request /users/profile response:', data)
+```
+
+**网络请求调试：**
+1. 打开浏览器开发者工具（F12）
+2. 切换到 Network 标签
+3. 查看请求的完整信息：
+   - 请求头（确认 Authorization）
+   - 响应头（确认 x-jwt-token）
+   - 响应内容（确认格式）
+   - 状态码（确认 200 vs 401）
+
+---
+
+### 快速诊断步骤
+
+遇到认证问题时，按以下步骤排查：
+
+1. **检查 CORS 配置**
+   - 访问 `http://localhost:8080/health`
+   - 查看响应头是否有 `Access-Control-Expose-Headers`
+
+2. **检查登录响应**
+   - 登录后查看 Network 标签
+   - 确认响应头中有 `x-jwt-token`
+   - 确认 localStorage 中存储了 token
+
+3. **检查 API 请求**
+   - 访问需要认证的 API
+   - 查看请求头是否包含 `Authorization: Bearer <token>`
+   - 查看响应状态码和内容
+
+4. **检查控制台错误**
+   - 查看是否有 CORS 相关错误
+   - 查看是否有 TypeScript 类型错误
+   - 查看是否有网络请求失败
+
+---
+
+### 避免错误的最佳实践
+
+1. **统一格式**：所有 API 响应使用统一的小写字段名
+2. **显式声明**：CORS 响应头必须显式声明所有自定义头
+3. **完整响应**：Handler 返回完整的 `ginx.Result` 结构
+4. **同步文档**：修改 API 时同步更新 API_ROUTES.md
+5. **类型安全**：前端使用 TypeScript 严格模式，确保类型正确
+6. **调试日志**：开发阶段添加适当的日志，便于排查问题

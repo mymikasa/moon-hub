@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"moon/internal/errs"
 	"moon/internal/service"
@@ -47,6 +48,8 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/login", ginx.WrapBody(h.LoginJWT))
 	ug.POST("/logout", h.LogoutJWT)
 	ug.GET("/refresh_token", h.RefreshToken)
+	ug.GET("/profile", h.Profile)
+	ug.PUT("/profile", ginx.WrapBody(h.UpdateProfile))
 }
 
 func (h *UserHandler) SignUp(ctx *gin.Context, req SignUpReq) (ginx.Result, error) {
@@ -211,4 +214,45 @@ func (h *UserHandler) LogoutJWT(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, ginx.Result{Msg: "退出登录成功"})
+}
+
+func (h *UserHandler) Profile(ctx *gin.Context) {
+	uc := ctx.MustGet("user").(ijwt.UserClaims)
+	u, err := h.svc.FindById(ctx.Request.Context(), uc.Uid)
+	if err != nil {
+		ctx.JSON(http.StatusOK, ginx.Result{Code: 5, Msg: "系统错误"})
+		return
+	}
+
+	resp := ProfileResp{
+		Id:       u.Id,
+		Email:    u.Email,
+		Nickname: u.Nickname,
+		Birthday: u.Birthday.UnixMilli(),
+		AboutMe:  u.AboutMe,
+		Phone:    u.Phone,
+	}
+	ctx.JSON(http.StatusOK, ginx.Result{Msg: "success", Data: resp})
+}
+
+func (h *UserHandler) UpdateProfile(ctx *gin.Context, req UpdateProfileReq) (ginx.Result, error) {
+	uc := ctx.MustGet("user").(ijwt.UserClaims)
+	u, err := h.svc.FindById(ctx.Request.Context(), uc.Uid)
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "系统错误"}, err
+	}
+
+	u.Nickname = req.Nickname
+	u.AboutMe = req.AboutMe
+	u.Phone = req.Phone
+	if req.Birthday != 0 {
+		u.Birthday = time.UnixMilli(req.Birthday)
+	}
+
+	err = h.svc.Update(ctx.Request.Context(), u)
+	if err != nil {
+		return ginx.Result{Code: 5, Msg: "更新失败"}, err
+	}
+
+	return ginx.Result{Msg: "更新成功"}, nil
 }

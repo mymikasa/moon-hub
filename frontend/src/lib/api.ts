@@ -1,9 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 interface ApiResponse<T = unknown> {
-  Code?: number
-  Msg: string
-  Data?: T
+  code?: number
+  msg: string
+  data?: T
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -27,24 +27,41 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     credentials: 'include',
   })
 
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('未登录或登录已过期')
+    }
+    const data: ApiResponse<T> = await response.json()
+    throw new Error(data.msg || '请求失败')
+  }
+
   const data: ApiResponse<T> = await response.json()
 
-  if (data.Code && data.Code !== 0) {
-    throw new Error(data.Msg || '请求失败')
+  if (data.code && data.code !== 0) {
+    throw new Error(data.msg || '请求失败')
   }
 
-  if (response.ok) {
-    return data.Data as T
-  }
-
-  throw new Error(data.Msg || '请求失败')
+  return data.data as T
 }
 
 export async function login(email: string, password: string): Promise<void> {
-  await request<void>('/users/login', {
+  const response = await fetch(`${API_BASE_URL}/users/login`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   })
+
+  const token = response.headers.get('x-jwt-token')
+  if (token) {
+    localStorage.setItem('access_token', token)
+  }
+
+  if (!response.ok) {
+    throw new Error('登录失败')
+  }
 }
 
 export async function register(email: string, password: string, confirmPassword: string, nickname: string): Promise<void> {
@@ -82,4 +99,26 @@ export function setAccessToken(token: string): void {
 
 export function clearAccessToken(): void {
   localStorage.removeItem('access_token')
+}
+
+export interface UserProfile {
+  id: number
+  email: string
+  nickname: string
+  birthday: number
+  about_me: string
+  phone: string
+}
+
+export async function getUserProfile(): Promise<UserProfile> {
+  return request<UserProfile>('/users/profile', {
+    method: 'GET',
+  })
+}
+
+export async function updateUserProfile(data: Partial<UserProfile>): Promise<void> {
+  await request<void>('/users/profile', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  })
 }

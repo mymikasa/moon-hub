@@ -20,6 +20,8 @@ var (
 type UserDAO interface {
 	Insert(ctx context.Context, u User) error
 	FindByEmail(ctx context.Context, email string) (User, error)
+	FindById(ctx context.Context, id int64) (User, error)
+	Update(ctx context.Context, u User) error
 }
 
 type GORMUserDAO struct {
@@ -34,6 +36,31 @@ func (dao *GORMUserDAO) FindByEmail(ctx context.Context, email string) (User, er
 		return u, err
 	}
 	return u, nil
+}
+
+func (dao *GORMUserDAO) FindById(ctx context.Context, id int64) (User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
+	return u, err
+}
+
+func (dao *GORMUserDAO) Update(ctx context.Context, u User) error {
+	now := time.Now().UnixMilli()
+	u.Utime = now
+	err := dao.db.WithContext(ctx).Model(&u).Where("id = ?", u.Id).Updates(map[string]interface{}{
+		"nickname": u.Nickname,
+		"birthday": u.Birthday,
+		"about_me": u.AboutMe,
+		"phone":    u.Phone,
+		"utime":    u.Utime,
+	}).Error
+	if err != nil {
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "duplicate") || strings.Contains(errStr, "unique") {
+			return ErrDuplicateEmail
+		}
+	}
+	return err
 }
 
 // Insert implements [UserDAO].

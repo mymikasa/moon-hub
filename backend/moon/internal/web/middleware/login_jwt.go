@@ -27,8 +27,8 @@ func (m *LoginJWTMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 			path == "/users/login_sms/code/send" ||
 			path == "/users/login_sms" ||
 			path == "/oauth2/wechat/authurl" ||
-			path == "/oauth2/wechat/callback" {
-			// 不需要登录校验
+			path == "/oauth2/wechat/callback" ||
+			path == "/health" {
 			return
 		}
 		tokenStr := m.ExtractToken(ctx)
@@ -37,33 +37,19 @@ func (m *LoginJWTMiddlewareBuilder) CheckLogin() gin.HandlerFunc {
 			return ijwt.JWTKey, nil
 		})
 		if err != nil {
-			// token 不对，token 是伪造的
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 		if token == nil || !token.Valid {
-			// 在这里发现 access_token 过期了，生成一个新的 access_token
-
-			// token 解析出来了，但是 token 可能是非法的，或者过期了的
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		// 这里看
 		err = m.CheckSession(ctx, uc.Ssid)
 		if err != nil {
-			// token 无效或者 redis 有问题
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-
-		// 可以兼容 Redis 异常的情况
-		// 做好监控，监控有没有 error
-		//if cnt > 0 {
-		//	// token 无效或者 redis 有问题
-		//	ctx.AbortWithStatus(http.StatusUnauthorized)
-		//	return
-		//}
 
 		ctx.Set("user", uc)
 	}

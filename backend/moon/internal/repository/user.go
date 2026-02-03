@@ -15,6 +15,8 @@ var (
 type UserRepository interface {
 	Create(ctx context.Context, u domain.User) error
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
+	FindById(ctx context.Context, id int64) (domain.User, error)
+	Update(ctx context.Context, u domain.User) error
 }
 
 type CachedUserRepository struct {
@@ -30,6 +32,14 @@ func (c *CachedUserRepository) Create(ctx context.Context, u domain.User) error 
 // FindByEmail implements [UserRepository].
 func (c *CachedUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	return c.repo.FindByEmail(ctx, email)
+}
+
+func (c *CachedUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
+	return c.repo.FindById(ctx, id)
+}
+
+func (c *CachedUserRepository) Update(ctx context.Context, u domain.User) error {
+	return c.repo.Update(ctx, u)
 }
 
 func NewCachedUserRepository(dao dao.UserDAO, repo UserRepository) UserRepository {

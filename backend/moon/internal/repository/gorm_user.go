@@ -28,6 +28,18 @@ func (r *GORMUserRepository) FindByEmail(ctx context.Context, email string) (dom
 	return daoToDomainUser(daoUser), nil
 }
 
+func (r *GORMUserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
+	daoUser, err := r.dao.FindById(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return daoToDomainUser(daoUser), nil
+}
+
+func (r *GORMUserRepository) Update(ctx context.Context, u domain.User) error {
+	return r.dao.Update(ctx, domainToDaoUser(u))
+}
+
 func domainToDaoUser(u domain.User) dao.User {
 	return dao.User{
 		Id:       u.Id,

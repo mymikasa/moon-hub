@@ -38,6 +38,19 @@ func (m *mockUserService) Login(ctx context.Context, email, password string) (do
 	return args.Get(0).(domain.User), args.Error(1)
 }
 
+func (m *mockUserService) FindById(ctx context.Context, id int64) (domain.User, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return domain.User{}, args.Error(1)
+	}
+	return args.Get(0).(domain.User), args.Error(1)
+}
+
+func (m *mockUserService) Update(ctx context.Context, u domain.User) error {
+	args := m.Called(ctx, u)
+	return args.Error(0)
+}
+
 type mockJWTHandler struct {
 	mock.Mock
 }
