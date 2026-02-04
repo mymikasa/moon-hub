@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,8 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export function HomePage() {
-  const navigate = useNavigate()
-  const { user, logout, refreshProfile } = useAuth()
+  const { user, refreshProfile } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [status, setStatus] = useState('')
@@ -22,17 +20,6 @@ export function HomePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
-
-  const handleLogout = async () => {
-    try {
-      await logout()
-      navigate('/login')
-    } catch {
-      setStatusType('error')
-      setStatus('退出登录失败')
-      window.setTimeout(() => setStatus(''), 3000)
-    }
   }
 
   const handleSave = async (event: React.FormEvent) => {
@@ -86,19 +73,13 @@ export function HomePage() {
   const birthday = user.birthday ? new Date(user.birthday).toLocaleDateString('zh-CN') : '未设置'
 
   return (
-    <div className="min-h-screen bg-background px-6 py-16 text-foreground">
-      <main className="mx-auto w-full max-w-2xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-3xl">个人主页</h1>
-            <p className="text-sm text-muted-foreground">欢迎来到 Moon Hub</p>
-          </div>
-          <Button variant="outline" onClick={handleLogout}>
-            退出登录
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-3xl">个人主页</h1>
+        <p className="text-sm text-muted-foreground">管理您的个人资料</p>
+      </div>
 
-        <Card>
+      <Card>
           <CardHeader>
             <CardTitle>个人信息</CardTitle>
             <CardDescription>管理您的个人资料</CardDescription>
@@ -180,7 +161,6 @@ export function HomePage() {
             </form>
           </CardContent>
         </Card>
-      </main>
     </div>
   )
 }
