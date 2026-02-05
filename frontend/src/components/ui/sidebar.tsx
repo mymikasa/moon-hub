@@ -499,13 +499,13 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-0 transition-[width,height,padding] hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 active:bg-accent/50 disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-[current=true]:bg-accent aria-[current=true]:text-accent-foreground [&>svg]:text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:justify-center",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-0 transition-[width,height,padding] hover:bg-muted hover:text-foreground focus-visible:ring-2 active:bg-muted/70 disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-[current=true]:bg-muted aria-[current=true]:text-foreground [&>svg]:text-muted-foreground [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:justify-center",
   {
     variants: {
       variant: {
-        default: "hover:bg-accent hover:text-accent-foreground",
+        default: "hover:bg-muted hover:text-foreground",
         outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--border))] hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--accent))]",
+          "bg-background shadow-[0-0_0_1px_hsl(var(--border))] hover:bg-muted hover:text-foreground hover:shadow-[0_0_0_1px_hsl(var(--border))]",
       },
       size: {
         default: "h-8 text-sm",

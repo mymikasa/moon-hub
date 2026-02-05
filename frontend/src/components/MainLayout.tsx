@@ -53,12 +53,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         <div className="flex h-screen w-full">
         <Sidebar collapsible="icon">
           <SidebarHeader className="border-b p-4">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:hidden">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <span className="font-bold">M</span>
                 </div>
-                <span className="font-display text-lg font-semibold group-data-[collapsible=icon]:hidden">
+                <span className="font-display text-lg font-semibold">
                   Moon Hub
                 </span>
               </div>
@@ -68,6 +68,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                   折叠侧边栏
                 </div>
               </div>
+            </div>
+            <div className="group-data-[collapsible=icon]:flex hidden items-center justify-center">
+              <SidebarTrigger />
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -102,10 +105,12 @@ export function MainLayout({ children }: MainLayoutProps) {
           </SidebarFooter>
         </Sidebar>
         <main className="flex flex-1 flex-col overflow-hidden">
-          <header className="flex h-14 items-center justify-between border-b px-4">
-            <span className="text-sm font-medium text-muted-foreground">
-              {menuItems.find((item) => isActive(item.path))?.title || 'Moon Hub'}
-            </span>
+          <header className="flex h-14 items-center justify-between px-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">
+                {menuItems.find((item) => isActive(item.path))?.title || 'Moon Hub'}
+              </span>
+            </div>
             {user && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
